@@ -24,3 +24,9 @@ hs_err_pid*
 
 # Intellij IDEA files
 .idea/
+*.iml
+
+# Output
+out/
+data/
+target/
