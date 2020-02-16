@@ -22,7 +22,7 @@ public class TaxiRevenueMapper extends Mapper<Object, Text, YearMonthPair, Doubl
         Trip trip = new Gson().fromJson(value.toString(), Trip.class);
         Common.CALENDAR.setTimeInMillis(trip.getStartTimeMillis());
 
-        context.write(new YearMonthPair(Common.CALENDAR.get(Calendar.YEAR), Common.CALENDAR.get(Calendar.MONTH)),
+        context.write(new YearMonthPair(Common.CALENDAR.get(Calendar.YEAR), Common.CALENDAR.get(Calendar.MONTH) + 1),
                 new DoubleWritable(trip.getRevenue()));
 
     }

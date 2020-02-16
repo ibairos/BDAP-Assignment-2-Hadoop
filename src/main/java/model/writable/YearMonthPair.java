@@ -35,7 +35,7 @@ public class YearMonthPair implements Writable, WritableComparable<YearMonthPair
 
     @Override
     public String toString() {
-        return year.toString() + "\t" + month.toString();
+        return year.toString() + "-" + month.toString();
     }
 
 
