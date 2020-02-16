@@ -1,14 +1,15 @@
 package jobs.reconstruct;
 
-import model.TaxiStatus;
+import model.TripStatus;
 import model.writable.Segment;
 import model.writable.TaxiIDPair;
+import model.writable.Trip;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 
-public class TaxiReconstructReducer extends Reducer<TaxiIDPair, Segment, NullWritable, Segment> {
+public class TaxiReconstructReducer extends Reducer<TaxiIDPair, Segment, NullWritable, Trip> {
 
     @Override
     protected void reduce(TaxiIDPair key, Iterable<Segment> segments, Context context) throws IOException,
@@ -17,22 +18,23 @@ public class TaxiReconstructReducer extends Reducer<TaxiIDPair, Segment, NullWri
         Segment mergedSegment = null;
 
         for (Segment s : segments) {
-            if (s.getStartStatus() == TaxiStatus.EMPTY && s.getEndStatus() == TaxiStatus.FULL) {
+            if (s.getStatus() == TripStatus.START) {
                 mergedSegment = s.getCopy();
-            } else if (s.getStartStatus() == TaxiStatus.FULL && s.getEndStatus() == TaxiStatus.FULL) {
-                if (mergedSegment != null && mergedSegment.isNextSegment(s.getStartTimeMillis())) {
+            } else if (s.getStatus() == TripStatus.MIDDLE) {
+                if (mergedSegment != null && mergedSegment.isNextSegment(s.getStartTimeMillis(), s.getStatus())) {
                     mergedSegment.merge(s);
                 }
-            } else if (s.getStartStatus() == TaxiStatus.FULL && s.getEndStatus() == TaxiStatus.EMPTY) {
-
-                if (mergedSegment != null && mergedSegment.isNextSegment(s.getStartTimeMillis())) {
+            } else if (s.getStatus() == TripStatus.END) {
+                if (mergedSegment != null && mergedSegment.isNextSegment(s.getStartTimeMillis(), s.getStatus())) {
                     mergedSegment.merge(s);
                     if (mergedSegment.isTaxiInAirport()) {
-                        context.write(NullWritable.get(), mergedSegment);
+                        context.write(NullWritable.get(), new Trip(mergedSegment.getStartTimeMillis(),
+                                mergedSegment.getDistance()));
                     }
                 }
                 mergedSegment = null;
             }
         }
     }
+
 }

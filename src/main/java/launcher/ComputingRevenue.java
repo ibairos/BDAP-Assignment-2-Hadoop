@@ -27,17 +27,22 @@ public class ComputingRevenue {
             System.exit(1);
         }
 
-        final long intermediate = System.nanoTime() - startTime;
-        System.out.println("********************** First phase took " + intermediate / 1000000000 + " seconds" +
-                "**********************");
+        final long intermediateTime = System.nanoTime() - startTime;
+
 
         Job revenueJob = Jobs.calculatingRevenueJob(reconstructOut, revenueOut);
         if (!revenueJob.waitForCompletion(true)) {
             System.exit(2);
         }
-        final long duration = System.nanoTime() - startTime;
-        System.out.println("********************** Program took " + duration / 1000000000 + " seconds" +
-                "**********************");
+        final long finalTime = System.nanoTime() - startTime;
+
+        System.out.println("Reconstructing trips took " +
+                String.format("%.3f", ((double) intermediateTime) / 1000000000) + " seconds.");
+        System.out.println("Calculating revenue took " + String.format("%.3f",
+                ((double) finalTime - intermediateTime) / 1000000000) + " seconds.");
+        System.out.println("Whole program took " + String.format("%.3f", ((double) finalTime) / 1000000000) +
+                " seconds.");
+
     }
 
     public static void deleteDirectory(java.nio.file.Path directory) {

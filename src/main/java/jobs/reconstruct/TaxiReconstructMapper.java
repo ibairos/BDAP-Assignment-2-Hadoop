@@ -1,7 +1,7 @@
 package jobs.reconstruct;
 
 import common.Common;
-import model.TaxiStatus;
+import model.TripStatus;
 import model.writable.Segment;
 import model.writable.TaxiIDPair;
 import org.apache.hadoop.io.Text;
@@ -27,16 +27,16 @@ public class TaxiReconstructMapper extends Mapper<Object, Text, TaxiIDPair, Segm
 
                 double startLat = Double.parseDouble(segmentArr[2]);
                 double startLong = Double.parseDouble(segmentArr[3]);
-                TaxiStatus startStatus = TaxiStatus.parse(segmentArr[4].replace("'", "").trim());
                 long endTimeMillis = LocalDateTime.parse(segmentArr[5].replace("'", ""), DATE_FORMATTER)
                         .atZone(Common.ZONE_ID).toInstant().toEpochMilli();
                 double endLat = Double.parseDouble(segmentArr[6]);
                 double endLong = Double.parseDouble(segmentArr[7]);
-                TaxiStatus endStatus = TaxiStatus.parse(segmentArr[8].replace("'", "").trim());
+                TripStatus status = TripStatus.parse(segmentArr[4].replace("'", "").trim(),
+                        segmentArr[8].replace("'", "").trim());
 
                 Segment segment = new Segment(startLat, startLong, endLat, endLong, startTimeMillis, endTimeMillis,
-                        startStatus, endStatus);
-                if (segment.isFull() && !segment.exceedsMaxSpeed()) {
+                        status);
+                if (segment.isValid() && !segment.exceedsMaxSpeed()) {
                     context.write(new TaxiIDPair(new Text(taxiID), new Text(String.valueOf(startTimeMillis))), segment);
                 }
             } catch (Exception e) {

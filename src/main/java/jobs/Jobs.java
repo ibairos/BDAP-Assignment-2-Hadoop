@@ -7,6 +7,7 @@ import jobs.revenue.TaxiRevenueReducer;
 import launcher.ComputingRevenue;
 import model.writable.Segment;
 import model.writable.TaxiIDPair;
+import model.writable.Trip;
 import model.writable.YearMonthPair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -28,23 +29,24 @@ public class Jobs {
 
         Job job = Job.getInstance(new Configuration(), RECONSTRUCTING_TRIPS);
 
-        job.setJarByClass(ComputingRevenue.class);
-        job.setNumReduceTasks(20);
-
         FileInputFormat.addInputPath(job, input);
         FileOutputFormat.setOutputPath(job, output);
-        FileInputFormat.setMaxInputSplitSize(job, 1000000);
 
-        job.setMapOutputKeyClass(TaxiIDPair.class);
-        job.setMapOutputValueClass(Segment.class);
-        job.setOutputKeyClass(NullWritable.class);
-        job.setOutputValueClass(Segment.class);
-        job.setOutputFormatClass(TextOutputFormat.class);
+        job.setJarByClass(ComputingRevenue.class);
 
-        job.setMapperClass(TaxiReconstructMapper.class);
         job.setGroupingComparatorClass(TaxiComparator.class);
         job.setPartitionerClass(TaxiPartitioner.class);
+
+        job.setMapperClass(TaxiReconstructMapper.class);
+        job.setMapOutputKeyClass(TaxiIDPair.class);
+        job.setMapOutputValueClass(Segment.class);
+
         job.setReducerClass(TaxiReconstructReducer.class);
+        job.setOutputKeyClass(NullWritable.class);
+        job.setOutputValueClass(Trip.class);
+        job.setOutputFormatClass(TextOutputFormat.class);
+
+        job.setNumReduceTasks(20);
 
         return job;
     }
@@ -53,21 +55,19 @@ public class Jobs {
 
         Job job = Job.getInstance(new Configuration(), COMPUTING_REVENUE);
 
-        job.setJarByClass(ComputingRevenue.class);
-        job.setNumReduceTasks(1);
-
         FileInputFormat.addInputPath(job, input);
         FileOutputFormat.setOutputPath(job, output);
-        FileInputFormat.setMaxInputSplitSize(job, 1000000);
 
+        job.setJarByClass(ComputingRevenue.class);
+
+        job.setMapperClass(TaxiRevenueMapper.class);
         job.setMapOutputKeyClass(YearMonthPair.class);
-        job.setMapOutputValueClass(Segment.class);
+        job.setMapOutputValueClass(DoubleWritable.class);
+
+        job.setReducerClass(TaxiRevenueReducer.class);
         job.setOutputKeyClass(YearMonthPair.class);
         job.setOutputValueClass(DoubleWritable.class);
         job.setOutputFormatClass(TextOutputFormat.class);
-
-        job.setMapperClass(TaxiRevenueMapper.class);
-        job.setReducerClass(TaxiRevenueReducer.class);
 
         return job;
     }
