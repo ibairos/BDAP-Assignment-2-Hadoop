@@ -36,7 +36,7 @@ public class TaxiReconstructMapper extends Mapper<Object, Text, TaxiIDPair, Segm
 
                 Segment segment = new Segment(startLat, startLong, endLat, endLong, startTimeMillis, endTimeMillis,
                         status);
-                if (segment.isValid() && !segment.exceedsMaxSpeed()) {
+                if (segment.isValid() && !segment.exceedsMaxSpeed() && !segment.distanceTooHigh()) {
                     context.write(new TaxiIDPair(new Text(taxiID), new Text(String.valueOf(startTimeMillis))), segment);
                 }
             } catch (Exception e) {

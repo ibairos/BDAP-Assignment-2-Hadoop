@@ -17,6 +17,11 @@ public class Segment implements Writable {
 
     private TripStatus status;
 
+    private double startLat;
+    private double startLong;
+    private double endLat;
+    private double endLong;
+
     private double distance;
 
     private boolean taxiInAirport;
@@ -25,11 +30,15 @@ public class Segment implements Writable {
         super();
     }
 
-    public Segment(long startTimeMillis, long endTimeMillis, TripStatus status, double distance,
-                   boolean taxiInAirport) {
+    public Segment(long startTimeMillis, long endTimeMillis, TripStatus status, double startLat, double startLong,
+                   double endLat, double endLong, double distance, boolean taxiInAirport) {
         this.startTimeMillis = startTimeMillis;
         this.endTimeMillis = endTimeMillis;
         this.status = status;
+        this.startLat = startLat;
+        this.startLong = startLong;
+        this.endLat = endLat;
+        this.endLong = endLong;
         this.distance = distance;
         this.taxiInAirport = taxiInAirport;
     }
@@ -39,6 +48,10 @@ public class Segment implements Writable {
         this.startTimeMillis = startTimeMillis;
         this.endTimeMillis = endTimeMillis;
         this.status = status;
+        this.startLat = startLat;
+        this.startLong = startLong;
+        this.endLat = endLat;
+        this.endLong = endLong;
         distance = DistanceUtils.flatSurfaceDistance(startLat, startLong, endLat, endLong);
         taxiInAirport = DistanceUtils.taxiInAirport(startLat, startLong, endLat, endLong);
     }
@@ -47,6 +60,10 @@ public class Segment implements Writable {
         dataOutput.writeLong(startTimeMillis);
         dataOutput.writeLong(endTimeMillis);
         dataOutput.writeUTF(status.toString());
+        dataOutput.writeDouble(startLat);
+        dataOutput.writeDouble(startLong);
+        dataOutput.writeDouble(endLat);
+        dataOutput.writeDouble(endLong);
         dataOutput.writeDouble(distance);
         dataOutput.writeBoolean(taxiInAirport);
     }
@@ -55,6 +72,10 @@ public class Segment implements Writable {
         startTimeMillis = dataInput.readLong();
         endTimeMillis = dataInput.readLong();
         status = TripStatus.valueOf(dataInput.readUTF());
+        startLat = dataInput.readDouble();
+        startLong = dataInput.readDouble();
+        endLat = dataInput.readDouble();
+        endLong = dataInput.readDouble();
         distance = dataInput.readDouble();
         taxiInAirport = dataInput.readBoolean();
     }
@@ -84,6 +105,38 @@ public class Segment implements Writable {
         this.status = status;
     }
 
+    public double getStartLat() {
+        return startLat;
+    }
+
+    public void setStartLat(double startLat) {
+        this.startLat = startLat;
+    }
+
+    public double getStartLong() {
+        return startLong;
+    }
+
+    public void setStartLong(double startLong) {
+        this.startLong = startLong;
+    }
+
+    public double getEndLat() {
+        return endLat;
+    }
+
+    public void setEndLat(double endLat) {
+        this.endLat = endLat;
+    }
+
+    public double getEndLong() {
+        return endLong;
+    }
+
+    public void setEndLong(double endLong) {
+        this.endLong = endLong;
+    }
+
     public double getDistance() {
         return distance;
     }
@@ -104,21 +157,30 @@ public class Segment implements Writable {
         return distance / (((double) endTimeMillis - startTimeMillis) / (1000 * 3600)) > Common.MAX_SPEED_KPH;
     }
 
-    public boolean isNextSegment(long newSegmentStartTime, TripStatus nextStatus) {
+    public boolean distanceTooHigh() {
+        return distance > Common.MAX_DISTANCE_KM;
+    }
+
+    public boolean isNextSegment(Segment segment) {
         boolean correctStatus =
                 (
-                        nextStatus == TripStatus.MIDDLE &&
+                        segment.getStatus() == TripStatus.MIDDLE &&
                         (status == TripStatus.START || status == TripStatus.MIDDLE)
                 )
                 ||
                 (
-                        nextStatus == TripStatus.END &&
+                        segment.getStatus() == TripStatus.END &&
                         (status == TripStatus.MIDDLE)
                 );
 
-        return endTimeMillis <= newSegmentStartTime
-                && newSegmentStartTime < endTimeMillis + Common.SEGMENT_TOLERANCE_MILLIS
-                && correctStatus;
+        boolean correctTime =
+                endTimeMillis <= segment.getStartTimeMillis()
+                && segment.getStartTimeMillis() - endTimeMillis < Common.SEGMENT_TOLERANCE_MILLIS;
+
+        boolean correctLocation = DistanceUtils.flatSurfaceDistance(endLat, endLong, segment.getStartLat(),
+                segment.getStartLong()) <= Common.DISTANCE_TOLERANCE_KM;
+
+        return correctTime && correctStatus && correctLocation;
     }
 
     public boolean isValid() {
@@ -128,12 +190,15 @@ public class Segment implements Writable {
     public void merge(Segment segment) {
         endTimeMillis = segment.getEndTimeMillis();
         status = segment.getStatus();
+        endLat = segment.endLat;
+        endLong = segment.endLong;
         distance += segment.getDistance();
         taxiInAirport = taxiInAirport || segment.isTaxiInAirport();
     }
 
     public Segment getCopy() {
-        return new Segment(startTimeMillis, endTimeMillis, status, distance, taxiInAirport);
+        return new Segment(startTimeMillis, endTimeMillis, status, startLat, startLong, endLat, endLong, distance,
+                taxiInAirport);
     }
 
     @Override

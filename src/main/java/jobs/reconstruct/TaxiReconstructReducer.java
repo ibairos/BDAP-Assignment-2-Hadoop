@@ -21,11 +21,11 @@ public class TaxiReconstructReducer extends Reducer<TaxiIDPair, Segment, NullWri
             if (s.getStatus() == TripStatus.START) {
                 mergedSegment = s.getCopy();
             } else if (s.getStatus() == TripStatus.MIDDLE) {
-                if (mergedSegment != null && mergedSegment.isNextSegment(s.getStartTimeMillis(), s.getStatus())) {
+                if (mergedSegment != null && mergedSegment.isNextSegment(s)) {
                     mergedSegment.merge(s);
                 }
             } else if (s.getStatus() == TripStatus.END) {
-                if (mergedSegment != null && mergedSegment.isNextSegment(s.getStartTimeMillis(), s.getStatus())) {
+                if (mergedSegment != null && mergedSegment.isNextSegment(s)) {
                     mergedSegment.merge(s);
                     if (mergedSegment.isTaxiInAirport()) {
                         context.write(NullWritable.get(), new Trip(mergedSegment.getStartTimeMillis(),
